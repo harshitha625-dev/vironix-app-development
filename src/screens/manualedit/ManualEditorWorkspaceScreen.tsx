@@ -19,6 +19,7 @@ import { ComingSoonPanel } from './features/coming-soon/ComingSoonPanel';
 import { useAIManualEditStore } from '../../store/aiManualEditStore';
 import { useVideoPlayer } from 'expo-video';
 import { EditorPlayerProvider } from './context/EditorPlayerContext';
+import { TimelinePlaybackSync } from './playback/TimelinePlaybackSync';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CreateStackParamList } from '../../navigation/types';
 
@@ -45,6 +46,7 @@ export function ManualEditorWorkspaceScreen({ navigation, route }: Props) {
 
   return (
     <EditorPlayerProvider player={player}>
+      <TimelinePlaybackSync />
       <SafeAreaView style={[styles.root, { backgroundColor: theme.bg }]}>
         <StatusBar style="light" />
 

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Text, Pressable } from 'react-native';
 import { Volume2, VolumeX } from 'lucide-react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView as RNGHScrollView } from 'react-native-gesture-handler';
@@ -12,6 +12,7 @@ import Animated, {
 import { useTheme } from '../../../../theme/ThemeProvider';
 import { useEditorState } from '../../hooks/useEditorState';
 import { useShallow } from 'zustand/react/shallow';
+import { safePausePlayer } from '../../utils/safeVideoPlayer';
 import { TrackLayer } from './TrackLayer';
 import { Playhead } from './Playhead';
 import { useEditorPlayer } from '../../context/EditorPlayerContext';
@@ -148,21 +149,16 @@ function VideoMuteTrack({ duration, scale, padding }: { duration: number; scale:
 
 export function TimelineLayout() {
   const { theme } = useTheme();
-  const { tracks, duration, selectedClipId, currentTime, isPlaying } = useEditorState(useShallow(s => ({
+  const { tracks, duration } = useEditorState(useShallow(s => ({
     tracks: s.tracks,
     duration: s.duration,
-    selectedClipId: s.selectedClipId,
-    currentTime: s.currentTime,
-    isPlaying: s.isPlaying
   })));
   const { player } = useEditorPlayer();
 
-  const selectedClip = useMemo(() => {
-    if (!selectedClipId) return null;
-    return tracks.flatMap(t => t.clips).find(c => c.id === selectedClipId) || null;
-  }, [tracks, selectedClipId]);
-
   const scrollViewRef = useRef<any>(null);
+  const currentTimeRef = useRef(useEditorState.getState().currentTime);
+  const isPlayingRef = useRef(useEditorState.getState().isPlaying);
+  const rafRef = useRef<number | null>(null);
 
   const isDragging = useSharedValue(false);
   const scale = useSharedValue(50); // pixels per second
@@ -175,31 +171,62 @@ export function TimelineLayout() {
     savedScale.value = 50;
   }, []);
 
-  // Sync scroll to playhead
   useEffect(() => {
     if (!player) return;
 
-    if (isPlaying) {
-      let reqId: number;
+    const stopLoop = () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+
+    const startLoop = () => {
+      if (rafRef.current != null) return;
+
       const loop = () => {
-        if (!isDragging.value) {
-          const tTime = useEditorState.getState().currentTime;
-          scrollViewRef.current?.scrollTo({ x: tTime * scale.value, animated: false });
+        if (isPlayingRef.current && !isDragging.value) {
+          scrollViewRef.current?.scrollTo({ x: useEditorState.getState().currentTime * scale.value, animated: false });
         }
-        reqId = requestAnimationFrame(loop);
+        rafRef.current = requestAnimationFrame(loop);
       };
-      reqId = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(reqId);
-    } else {
-      // When paused, just subscribe to the store to handle skip jumps
-      const unsub = useEditorState.subscribe((state, prevState) => {
+
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    const scrollToCurrentTime = (animated: boolean) => {
+      if (isDragging.value) return;
+      scrollViewRef.current?.scrollTo({ x: currentTimeRef.current * scale.value, animated });
+    };
+
+    const unsub = useEditorState.subscribe((state, prevState) => {
+      if (state.currentTime !== prevState.currentTime) {
+        currentTimeRef.current = state.currentTime;
         if (!state.isPlaying && !isDragging.value && Math.abs(state.currentTime - prevState.currentTime) > 0.05) {
-          scrollViewRef.current?.scrollTo({ x: state.currentTime * scale.value, animated: true });
+          scrollToCurrentTime(true);
         }
-      });
-      return () => unsub();
+      }
+
+      if (state.isPlaying !== prevState.isPlaying) {
+        isPlayingRef.current = state.isPlaying;
+        if (state.isPlaying) {
+          startLoop();
+        } else {
+          stopLoop();
+          scrollToCurrentTime(true);
+        }
+      }
+    });
+
+    if (isPlayingRef.current) {
+      startLoop();
     }
-  }, [isPlaying, player, scale]);
+
+    return () => {
+      stopLoop();
+      unsub();
+    };
+  }, [player]);
 
   const updatePlayerTime = (offsetX: number, currentScale: number) => {
     if (player && isDragging.value) {
@@ -210,7 +237,7 @@ export function TimelineLayout() {
   };
 
   const pausePlayerIfNeeded = () => {
-    if (player?.playing) player.pause();
+    if (player?.playing) safePausePlayer(player);
   };
 
   const scrollHandler = useAnimatedScrollHandler({

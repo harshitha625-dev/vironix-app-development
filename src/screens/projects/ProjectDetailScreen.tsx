@@ -8,6 +8,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { typography, spacing, radius } from '../../theme/tokens';
 import type { CreateStackParamList } from '../../navigation/types';
 import { useProjectStore } from '../../store/projectStore';
+import { useHomeStore } from '../../store/homeStore';
 import { ProjectService } from '../../services/projectService';
 
 type Props = NativeStackScreenProps<CreateStackParamList, 'ProjectDetail'>;
@@ -19,8 +20,16 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
 
   const projects = useProjectStore(state => state.projects);
   const project = useMemo(() => projects.find(p => p.id === projectId), [projects, projectId]);
+  const homeProject = useHomeStore((state) => state.recentProjects.find((p) => p.id === projectId)) ?? null;
+  const detailStatus = project?.status ?? homeProject?.status ?? 'draft';
+  const detailTitle = project?.name ?? homeProject?.prompt ?? 'Untitled Project';
+  const detailPrompt = project?.aiPrompt || homeProject?.prompt || 'No prompt provided.';
+  const detailDuration = project?.duration ?? '00:00';
+  const detailResolution = project?.resolution ?? '1080p';
+  const detailFileSize = project?.fileSize ?? '0 MB';
+  const detailUpdatedAt = project?.updatedAt ?? homeProject?.updatedAt ?? new Date().toISOString();
 
-  if (!project) {
+  if (!project && !homeProject) {
     return (
       <View style={[styles.container, { backgroundColor: theme.bg, justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={[typography.body, { color: '#EF4444' }]}>Project not found.</Text>
@@ -71,16 +80,16 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
           <View style={[styles.thumbnail, { backgroundColor: theme.surfaceAlt }]}>
             <Play size={48} color={theme.textMuted} />
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: project.status === 'completed' ? 'rgba(56, 221, 248, 0.2)' : 'rgba(139, 92, 246, 0.2)' }]}>
-            <Text style={[typography.caption, { color: project.status === 'completed' ? '#38DDF8' : '#8B5CF6', fontWeight: 'bold' }]}>
-              {project.status.toUpperCase()}
+          <View style={[styles.statusBadge, { backgroundColor: detailStatus === 'completed' ? 'rgba(56, 221, 248, 0.2)' : 'rgba(139, 92, 246, 0.2)' }]}> 
+            <Text style={[typography.caption, { color: detailStatus === 'completed' ? '#38DDF8' : '#8B5CF6', fontWeight: 'bold' }]}> 
+              {detailStatus.toUpperCase()}
             </Text>
           </View>
         </View>
 
         {/* Info Box */}
         <View style={styles.section}>
-          <Text style={[typography.h2, { color: theme.textPrimary, marginBottom: spacing.xs }]}>{project.name}</Text>
+          <Text style={[typography.h2, { color: theme.textPrimary, marginBottom: spacing.xs }]}>{detailTitle}</Text>
           
           <View style={[styles.infoGrid, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
             
@@ -89,7 +98,7 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
                 <Clock size={16} color={theme.textMuted} />
                 <Text style={[typography.caption, { color: theme.textSecondary, marginLeft: 8 }]}>Duration</Text>
               </View>
-              <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>{project.duration}</Text>
+              <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>{detailDuration}</Text>
             </View>
             
             <View style={styles.infoRow}>
@@ -97,7 +106,7 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
                 <Video size={16} color={theme.textMuted} />
                 <Text style={[typography.caption, { color: theme.textSecondary, marginLeft: 8 }]}>Resolution</Text>
               </View>
-              <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>{project.resolution}</Text>
+              <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>{detailResolution}</Text>
             </View>
 
             <View style={styles.infoRow}>
@@ -105,7 +114,7 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
                 <FileVideo size={16} color={theme.textMuted} />
                 <Text style={[typography.caption, { color: theme.textSecondary, marginLeft: 8 }]}>File Size</Text>
               </View>
-              <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>{project.fileSize}</Text>
+              <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>{detailFileSize}</Text>
             </View>
 
             <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
@@ -114,7 +123,7 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
                 <Text style={[typography.caption, { color: theme.textSecondary, marginLeft: 8 }]}>Last Modified</Text>
               </View>
               <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>
-                {new Date(project.updatedAt).toLocaleDateString()}
+                {new Date(detailUpdatedAt).toLocaleDateString()}
               </Text>
             </View>
 
@@ -126,35 +135,36 @@ export function ProjectDetailScreen({ route, navigation }: Props) {
           <Text style={[typography.h2, { color: theme.textPrimary, marginBottom: spacing.md }]}>AI Prompt</Text>
           <View style={[styles.promptBox, { backgroundColor: 'rgba(56, 221, 248, 0.05)', borderColor: 'rgba(56, 221, 248, 0.2)' }]}>
             <Text style={[typography.body, { color: theme.textPrimary }]}>
-              {project.aiPrompt || "No prompt provided."}
+              {detailPrompt}
             </Text>
           </View>
         </View>
 
-        {/* Version History */}
-        <View style={styles.section}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-            <History size={20} color={theme.textPrimary} />
-            <Text style={[typography.h2, { color: theme.textPrimary }]}>Version History</Text>
-          </View>
-
-          {project.versionHistory.map((version) => (
-            <View key={version.id} style={[styles.versionRow, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>Version {version.versionNumber}</Text>
-                <Text style={[typography.caption, { color: theme.textSecondary }]}>{version.description}</Text>
-                <Text style={[typography.tiny, { color: theme.textMuted, marginTop: 4 }]}>
-                  {new Date(version.createdAt).toLocaleString()}
-                </Text>
-              </View>
-              
-              <Pressable onPress={() => handleRestore(version.id)} style={[styles.restoreBtn, { backgroundColor: 'rgba(56, 221, 248, 0.1)' }]}>
-                <RotateCcw size={16} color="#38DDF8" />
-                <Text style={[typography.caption, { color: '#38DDF8', marginLeft: 6 }]}>Restore</Text>
-              </Pressable>
+        {project ? (
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
+              <History size={20} color={theme.textPrimary} />
+              <Text style={[typography.h2, { color: theme.textPrimary }]}>Version History</Text>
             </View>
-          ))}
-        </View>
+
+            {project.versionHistory.map((version) => (
+              <View key={version.id} style={[styles.versionRow, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}> 
+                <View style={{ flex: 1 }}>
+                  <Text style={[typography.bodyMedium, { color: theme.textPrimary }]}>Version {version.versionNumber}</Text>
+                  <Text style={[typography.caption, { color: theme.textSecondary }]}>{version.description}</Text>
+                  <Text style={[typography.tiny, { color: theme.textMuted, marginTop: 4 }]}> 
+                    {new Date(version.createdAt).toLocaleString()}
+                  </Text>
+                </View>
+                
+                <Pressable onPress={() => handleRestore(version.id)} style={[styles.restoreBtn, { backgroundColor: 'rgba(56, 221, 248, 0.1)' }]}> 
+                  <RotateCcw size={16} color="#38DDF8" />
+                  <Text style={[typography.caption, { color: '#38DDF8', marginLeft: 6 }]}>Restore</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
       </ScrollView>
     </View>

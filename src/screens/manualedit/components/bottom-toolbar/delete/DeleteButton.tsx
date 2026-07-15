@@ -8,18 +8,14 @@ import { useEditorPlayer } from '../../../context/EditorPlayerContext';
 
 export function DeleteButton() {
   const { theme } = useTheme();
-  const { selectedClipId, currentTime, tracks, deleteClip } = useEditorState(useShallow(s => ({
+  const { selectedClipId, deleteClip } = useEditorState(useShallow(s => ({
     selectedClipId: s.selectedClipId,
-    currentTime: s.currentTime,
-    tracks: s.tracks,
     deleteClip: s.deleteClip
   })));
   const { player } = useEditorPlayer();
 
   const handlePress = () => {
     if (!selectedClipId) return;
-
-    const t = player?.currentTime ?? currentTime;
     deleteClip(selectedClipId!);
   };
 

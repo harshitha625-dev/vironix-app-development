@@ -10,6 +10,7 @@ import { BottomToolbar } from '../components/bottom-toolbar/BottomToolbar';
 import { LeftQuickActions } from '../components/left-actions/LeftQuickActions';
 import { useEditorState } from '../hooks/useEditorState';
 import { TrimPanel } from '../features/trim/TrimPanel';
+import { TimelinePlaybackSync } from '../playback/TimelinePlaybackSync';
 
 export function EditorScreen() {
   const { theme } = useTheme();
@@ -18,6 +19,7 @@ export function EditorScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style="light" />
+      <TimelinePlaybackSync />
       
       <TopBar />
       

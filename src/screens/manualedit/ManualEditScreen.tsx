@@ -25,6 +25,7 @@ import { Screen } from '../../components/Screen';
 import { useAIManualEditStore } from '../../store/aiManualEditStore';
 import { AIManualEditService } from '../../services/aiManualEditService';
 import { useProjectStore } from '../../store/projectStore';
+import { safePausePlayer } from './utils/safeVideoPlayer';
 import type { CreateStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<CreateStackParamList, 'ManualEdit'>;
@@ -100,9 +101,7 @@ export function ManualEditScreen({ navigation }: Props) {
       }
       return () => {
         // Screen lost focus (editor pushed on top) — stop the preview player
-        if (player) {
-          player.pause();
-        }
+        safePausePlayer(player);
       };
     }, [player, selectedVideo])
   );

@@ -7,7 +7,6 @@ import { useTheme } from '../../../../theme/ThemeProvider';
 import { radius, spacing } from '../../../../theme/tokens';
 import { VideoView } from 'expo-video';
 import { useEditorPlayer } from '../../context/EditorPlayerContext';
-import { useTimelinePlayback } from '../../playback/useTimelinePlayback';
 
 export function VideoPreview() {
   const { theme } = useTheme();
@@ -18,8 +17,8 @@ export function VideoPreview() {
     isMuted: s.isMuted
   })));
   const { player } = useEditorPlayer();
-  // Use the single shared playback hook — no duplicate listener
-  const { isPlaying, togglePlay } = useTimelinePlayback();
+  const isPlaying = useEditorState(s => s.isPlaying);
+  const togglePlay = useEditorState(s => s.togglePlay);
 
   // Sync playbackRate/volume changes to native player (these change infrequently)
   React.useEffect(() => {

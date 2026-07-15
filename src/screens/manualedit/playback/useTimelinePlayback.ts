@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useEditorPlayer } from '../context/EditorPlayerContext';
 import { useEditorState } from '../hooks/useEditorState';
 import { useShallow } from 'zustand/react/shallow';
+import { safePausePlayer } from '../utils/safeVideoPlayer';
 
 export const useTimelinePlayback = () => {
   const { player } = useEditorPlayer();
@@ -40,7 +41,7 @@ export const useTimelinePlayback = () => {
       }
       player.play();
     } else {
-      player.pause();
+      safePausePlayer(player);
     }
   }, [isPlaying, player]);
 

@@ -8,6 +8,7 @@ import { Clip } from '../../types/editor.types';
 import { useEditorState } from '../../hooks/useEditorState';
 import { useShallow } from 'zustand/react/shallow';
 import { useEditorPlayer } from '../../context/EditorPlayerContext';
+import { safePausePlayer } from '../../utils/safeVideoPlayer';
 
 export const TRACK_HEIGHTS: Record<string, number> = {
   video: 60,
@@ -61,7 +62,7 @@ export function ClipNode({ clip, scale, timelinePadding }: Props) {
         });
         setDragOffsets({ left: 0, right: 0 });
         if (player) {
-          player.pause();
+          safePausePlayer(player);
           useEditorState.getState().setCurrentTime(newStartTime);
         }
       },
@@ -83,7 +84,7 @@ export function ClipNode({ clip, scale, timelinePadding }: Props) {
         updateClipTrim(clip.id, { duration: newDuration });
         setDragOffsets({ left: 0, right: 0 });
         if (player) {
-          player.pause();
+          safePausePlayer(player);
           useEditorState.getState().setCurrentTime(clip.startTime + newDuration - 0.1);
         }
       },
@@ -182,7 +183,7 @@ export function ClipNode({ clip, scale, timelinePadding }: Props) {
         onPress={() => {
           setSelectedClipId(clip.id);
           if (player) {
-            player.pause();
+            safePausePlayer(player);
             useEditorState.getState().setCurrentTime(clip.startTime);
           }
         }}

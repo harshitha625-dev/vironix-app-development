@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Play, Pause, Undo, Redo, SkipBack, SkipForward } from 'lucide-react-native';
 import { useTheme } from '../../../../theme/ThemeProvider';
@@ -6,34 +6,48 @@ import { typography, spacing } from '../../../../theme/tokens';
 import { useEditorState } from '../../hooks/useEditorState';
 import { useShallow } from 'zustand/react/shallow';
 import { useEditorPlayer } from '../../context/EditorPlayerContext';
-import { useTimelinePlayback } from '../../playback/useTimelinePlayback';
 
-export function PlaybackControls() {
+function CurrentTimeDisplay() {
   const { theme } = useTheme();
-  const { duration, tracks, currentTime, setCurrentTime } = useEditorState(useShallow(s => ({
-    duration: s.duration,
-    tracks: s.tracks,
+  const { currentTime, duration } = useEditorState(useShallow((s) => ({
     currentTime: s.currentTime,
-    setCurrentTime: s.setCurrentTime
+    duration: s.duration,
   })));
-  const { player } = useEditorPlayer();
-
-  const { isPlaying, togglePlay } = useTimelinePlayback();
 
   const formatTime = (secs: number) => {
     const totalSeconds = Math.floor(secs);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleTogglePlay = () => {
-    togglePlay();
-  };
+  return (
+    <View style={styles.timeGroup}>
+      <Text style={[typography.caption, { color: theme.textPrimary, fontWeight: 'bold', fontSize: 10 }]}>
+        {formatTime(currentTime)}
+      </Text>
+      <Text style={[typography.caption, { color: theme.textMuted, marginLeft: 2, fontSize: 10 }]}>
+        / {formatTime(duration)}
+      </Text>
+    </View>
+  );
+}
+
+export function PlaybackControls() {
+  const { theme } = useTheme();
+  const { duration, tracks, setCurrentTime } = useEditorState(useShallow(s => ({
+    duration: s.duration,
+    tracks: s.tracks,
+    setCurrentTime: s.setCurrentTime
+  })));
+  const { player } = useEditorPlayer();
+  const isPlaying = useEditorState(s => s.isPlaying);
+  const togglePlay = useEditorState(s => s.togglePlay);
 
   const handleSkipBack = () => {
     if (!player) return;
+    const currentTime = useEditorState.getState().currentTime;
     const allClips = tracks.filter(t => t.type === 'video').flatMap(t => t.clips);
     const actualDuration = duration;
     const boundaries = allClips.flatMap(c => [c.startTime, c.startTime + c.duration]);
@@ -50,6 +64,7 @@ export function PlaybackControls() {
 
   const handleSkipForward = () => {
     if (!player) return;
+    const currentTime = useEditorState.getState().currentTime;
     const allClips = tracks.filter(t => t.type === 'video').flatMap(t => t.clips);
     const actualDuration = duration;
     const boundaries = allClips.flatMap(c => [c.startTime, c.startTime + c.duration]);
@@ -66,20 +81,13 @@ export function PlaybackControls() {
 
   return (
     <View style={[styles.container, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
-      <View style={styles.timeGroup}>
-        <Text style={[typography.caption, { color: theme.textPrimary, fontWeight: 'bold', fontSize: 10 }]}>
-          {formatTime(currentTime)}
-        </Text>
-        <Text style={[typography.caption, { color: theme.textMuted, marginLeft: 2, fontSize: 10 }]}>
-          / {formatTime(duration)}
-        </Text>
-      </View>
+      <CurrentTimeDisplay />
 
       <View style={styles.controlsGroup}>
         <Pressable onPress={handleSkipBack} style={styles.iconBtn}>
           <SkipBack color={theme.textPrimary} size={20} />
         </Pressable>
-        <Pressable onPress={handleTogglePlay} style={styles.iconBtn}>
+        <Pressable onPress={togglePlay} style={styles.iconBtn}>
           {isPlaying ? <Pause color={theme.textPrimary} size={24} /> : <Play fill={theme.textPrimary} color={theme.textPrimary} size={24} />}
         </Pressable>
         <Pressable onPress={handleSkipForward} style={styles.iconBtn}>

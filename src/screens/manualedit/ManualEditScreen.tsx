@@ -142,24 +142,24 @@ export function ManualEditScreen({ navigation }: Props) {
     setTimeout(async () => {
       try {
         console.log('[ManualEdit] setTimeout fired, launching picker...');
-        let uri: string | null = null;
+        let media: { uri: string, duration?: number } | null = null;
         if (source === 'camera_photo') {
           console.log('[ManualEdit] calling captureMedia(photo)');
-          uri = await AIManualEditService.captureMedia('photo');
+          media = await AIManualEditService.captureMedia('photo');
         } else if (source === 'camera_video') {
           console.log('[ManualEdit] calling captureMedia(video)');
-          uri = await AIManualEditService.captureMedia('video');
+          media = await AIManualEditService.captureMedia('video');
         } else {
           console.log('[ManualEdit] calling pickMediaFromGallery');
-          uri = await AIManualEditService.pickMediaFromGallery();
+          media = await AIManualEditService.pickMediaFromGallery();
         }
 
-        console.log('[ManualEdit] picker returned uri:', uri);
+        console.log('[ManualEdit] picker returned media:', media);
 
-        if (uri) {
+        if (media && media.uri) {
           setLoading(true);
-          const meta = await AIManualEditService.analyzeVideo(uri);
-          setSelectedVideo(uri, meta);
+          const meta = await AIManualEditService.analyzeVideo(media);
+          setSelectedVideo(media.uri, meta);
           setLoading(false);
         }
       } catch (error: any) {

@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { VideoMetadata } from '../store/aiManualEditStore';
 
 export const AIManualEditService = {
-  async captureMedia(type: 'photo' | 'video'): Promise<string | null> {
+  async captureMedia(type: 'photo' | 'video'): Promise<{ uri: string, duration?: number } | null> {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
       Alert.alert('Permission Required', 'Camera permission is required to capture media.');
@@ -20,10 +20,10 @@ export const AIManualEditService = {
     });
     
     if (result.canceled || !result.assets[0]) return null;
-    return result.assets[0].uri;
+    return { uri: result.assets[0].uri, duration: result.assets[0].duration };
   },
 
-  async pickMediaFromGallery(): Promise<string | null> {
+  async pickMediaFromGallery(): Promise<{ uri: string, duration?: number } | null> {
     console.log('[ImagePicker] pickMediaFromGallery called');
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     console.log('[ImagePicker] media library permission:', JSON.stringify(perm));
@@ -40,22 +40,32 @@ export const AIManualEditService = {
     console.log('[ImagePicker] result canceled:', result.canceled, 'assets:', result.assets?.length);
     
     if (result.canceled || !result.assets[0]) return null;
-    return result.assets[0].uri;
+    return { uri: result.assets[0].uri, duration: result.assets[0].duration };
   },
 
-  async analyzeVideo(uri: string): Promise<VideoMetadata> {
+  async analyzeVideo(media: { uri: string, duration?: number }): Promise<VideoMetadata> {
     // Simulate analyzing metadata and generating thumbnail
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Extract filename from URI roughly
-    const uriParts = uri.split('/');
+    const uriParts = media.uri.split('/');
     const name = uriParts[uriParts.length - 1] || 'video.mp4';
+    
+    let durationStr = 'Loading...';
+    if (media.duration) {
+        // ImagePicker returns duration in milliseconds
+        const totalSeconds = media.duration / 1000;
+        const m = Math.floor(totalSeconds / 60);
+        // keep up to 2 decimal places for precise editor track length, e.g. 10.52
+        const s = (totalSeconds % 60).toFixed(2);
+        durationStr = `${m.toString().padStart(2, '0')}:${s.padStart(5, '0')}`;
+    }
 
     return {
-      uri,
+      uri: media.uri,
       name,
       size: '24.5 MB',
-      duration: 'Loading...',
+      duration: durationStr,
       resolution: '1920x1080',
       fps: 60,
       lastModified: new Date().toLocaleDateString(),

@@ -1,13 +1,19 @@
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { supabase, isSupabaseConfigured } from './supabase';
 
+const isExpoGoAndroid =
+  Platform.OS === 'android' &&
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 let Notifications: any = null;
-try {
-  // Using require instead of top-level import to prevent crash at startup in Expo Go
-  Notifications = require('expo-notifications');
-} catch (error) {
-  console.warn('Failed to load expo-notifications (expected in Expo Go SDK 53+):', error);
+if (!isExpoGoAndroid) {
+  try {
+    // Using require instead of top-level import to prevent crash at startup in Expo Go
+    Notifications = require('expo-notifications');
+  } catch (error) {
+    console.warn('Failed to load expo-notifications:', error);
+  }
 }
 
 if (Notifications) {
